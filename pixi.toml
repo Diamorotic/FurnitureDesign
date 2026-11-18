@@ -1,0 +1,13 @@
+[workspace]
+channels = ['conda-forge']
+name = "Bathroom"
+platforms = ['win-64']
+version = "0.1.0"
+
+[tasks]
+
+[dependencies]
+cadquery = ">=2.8.0,<3"
+
+[pypi-dependencies]
+ocp-viewer = ">=1.2.0, <2"

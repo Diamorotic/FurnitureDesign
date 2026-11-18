@@ -1,0 +1,22 @@
+# pixi environments
+.pixi/*
+!.pixi/config.toml
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local backups
+backups/
+
+# CAD exports & temporary files
+*.step
+*.stp
+*.stl
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
