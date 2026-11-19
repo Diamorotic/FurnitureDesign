@@ -100,12 +100,12 @@ def run_furniture_assertions() -> None:
         f"Basin-to-washer standing clearance too tight: {basin_standing_space_y:.0f} mm"
     )
 
-    # 3. Wall C upper cabinets clear clear doorway opening, toilet cabinet, basin step, and ceiling lamps
-    assert cfg.UPPER_C_DEPTH_Y < cfg.DOOR_OFFSET_Y, (
-        f"Wall C upper cabinets ({cfg.UPPER_C_DEPTH_Y} mm) intrude into clear doorway ({cfg.DOOR_OFFSET_Y} mm)"
+    # 3. Wall C upper cabinets clear clear doorway opening, mate flush to toilet cabinet, and clear ceiling lamps
+    assert cfg.UPPER_C_LEFT_DEPTH_Y < cfg.DOOR_OFFSET_Y, (
+        f"Wall C left upper cabinets ({cfg.UPPER_C_LEFT_DEPTH_Y} mm) intrude into clear doorway ({cfg.DOOR_OFFSET_Y} mm)"
     )
-    assert cfg.UPPER_C_DEPTH_Y < cfg.TOILET_CAB_Y0, (
-        f"Wall C upper cabinets ({cfg.UPPER_C_DEPTH_Y} mm) collide with toilet cabinet (y={cfg.TOILET_CAB_Y0} mm)"
+    assert abs(cfg.UPPER_C_RIGHT_DEPTH_Y - cfg.TOILET_CAB_Y0) <= cfg.CLEARANCE_TOLERANCE, (
+        f"Wall C blind-corner cabinet ({cfg.UPPER_C_RIGHT_DEPTH_Y} mm) should mate flush with toilet cabinet (y={cfg.TOILET_CAB_Y0} mm)"
     )
     assert cfg.UPPER_C_STEP_X > basin_x1, (
         f"Wall C upper cabinet step ({cfg.UPPER_C_STEP_X} mm) overhangs basin right edge ({basin_x1} mm)"
@@ -115,9 +115,13 @@ def run_furniture_assertions() -> None:
         f"Cabinet doors too close to ceiling lamp bottom: {lamp_door_clearance_z:.1f} mm"
     )
 
-    # 4. Wall A toilet cabinet double doors clear Lamp 3 in full swing arc too
+    # 4. Wall A toilet cabinet double doors clear Lamp 3 in full swing arc & corner door has 0 mm collision
     toilet_door_width = 0.5 * (cfg.TOILET_CAB_Y1 - cfg.TOILET_CAB_Y0)
     cistern_front_x = cfg.ROOM_LENGTH_X - cfg.TOILET_CAB_DEPTH_X
+    corner_door_width = cistern_front_x - cfg.UPPER_C_STEP_X - cfg.CABINET_DOOR_GAP
+    assert corner_door_width > 350.0, (
+        f"Blind-corner single door unexpectedly narrow: {corner_door_width:.1f} mm"
+    )
     lamp3_x_near = cfg.LAMP_3_CENTER_X + 0.5 * cfg.LAMP_DIAMETER
     lamp3_y_near = cfg.LAMP_3_NEAR_Y
     lamp3_dist = math.hypot(cistern_front_x - lamp3_x_near, lamp3_y_near - cfg.TOILET_CAB_Y0)
@@ -148,9 +152,23 @@ def run_furniture_assertions() -> None:
     print(
         f"[OK] Furniture vision verified | Basin walkway: {basin_standing_space_y:.0f} mm | "
         f"Lamp-to-door Z clearance: {lamp_door_clearance_z:.0f} mm | "
-        f"Toilet-to-Wall C corner reveal: {cfg.TOILET_CAB_Y0 - cfg.UPPER_C_DEPTH_Y:.0f} mm | "
+        f"Blind-corner single door: {corner_door_width:.0f} mm (0 mm gap to toilet cab) | "
         f"Cat headroom: {cat_headroom_z:.0f} mm"
     )
+
+
+def assert_all_solids_valid(assembly: cq.Assembly) -> None:
+    """Verify every geometry leaf in the assembly has a valid, non-empty solid with volume > 0."""
+    checked = 0
+    for obj, name, _loc, _color in assembly:
+        if obj is None:
+            continue
+        shape = obj.val() if hasattr(obj, "val") else obj
+        vol = shape.Volume()
+        assert shape.isValid(), f"Invalid BREP geometry in part '{name}'"
+        assert vol > 0.0, f"Empty/zero-volume geometry in part '{name}'"
+        checked += 1
+    print(f"[OK] Geometry validity verified across all {checked} solids")
 
 
 def build_scene() -> cq.Assembly:
@@ -168,5 +186,6 @@ def build_scene() -> cq.Assembly:
 run_room_shell_assertions()
 run_furniture_assertions()
 model = build_scene()
+assert_all_solids_valid(model)
 
 from ocp_viewer import show; show(model)

@@ -321,25 +321,28 @@ def build_wall_c_mirror() -> cq.Assembly:
 
 
 def build_wall_c_upper_cabinets() -> cq.Assembly:
-    """Build Wall C stepped upper cabinets (255 mm deep), 110 mm valance, ducted vent & LEDs."""
+    """Build Wall C stepped upper cabinets: left 255 mm (2 doors + ducted vent) & right 288 mm blind-corner (1 door)."""
     asm = cq.Assembly(name="wall_c_upper_cabinets")
 
     t = cfg.CABINET_PANEL_THICKNESS
     gap = cfg.CABINET_DOOR_GAP
-    y_carcass_front = cfg.UPPER_C_DEPTH_Y - t
+    y_left_front = cfg.UPPER_C_LEFT_DEPTH_Y            # 255.0 mm
+    y_left_carcass = y_left_front - t                  # 237.0 mm
+    y_right_front = cfg.UPPER_C_RIGHT_DEPTH_Y          # 288.0 mm (flush with toilet cabinet!)
+    y_right_carcass = y_right_front - t                # 270.0 mm
     valance_z0 = cfg.ROOM_HEIGHT_Z - cfg.CABINET_TOP_VALANCE_HEIGHT_Z
 
-    # 1. Carcasses (left/basin bay + right/toilet bay)
-    left_x0 = cfg.UPPER_C_LEFT_FILLER_X
-    left_x1 = cfg.UPPER_C_STEP_X
-    right_x0 = cfg.UPPER_C_STEP_X
-    right_x1 = cfg.ROOM_LENGTH_X - cfg.UPPER_C_RIGHT_FILLER_X
+    left_x0 = cfg.UPPER_C_LEFT_FILLER_X                # 20.0 mm
+    left_x1 = cfg.UPPER_C_STEP_X                       # 980.0 mm
+    right_x0 = cfg.UPPER_C_STEP_X                      # 980.0 mm
+    toilet_front_x = cfg.ROOM_LENGTH_X - cfg.TOILET_CAB_DEPTH_X  # 1451.0 mm
 
+    # 1A. Left/basin carcass (x = 20..980, y = 0..237, z = 1850..2385)
     left_carcass = _build_carcass(
         left_x0,
         left_x1,
         0.0,
-        y_carcass_front,
+        y_left_carcass,
         cfg.UPPER_C_LEFT_BOTTOM_Z,
         cfg.ROOM_HEIGHT_Z,
         open_face="+Y",
@@ -351,28 +354,66 @@ def build_wall_c_upper_cabinets() -> cq.Assembly:
         color=_color(cfg.COLOR_BAMBOO_CARCASS),
     )
 
-    right_carcass = _build_carcass(
+    # 1B. Right blind-corner carcass (x = 980..1640, y = 0..288, z = 1500..2385)
+    # Open on x = 980..1451, closed flush against the toilet cabinet side (y = 288) for x = 1451..1640.
+    right_outer = _box_from_bounds(
         right_x0,
-        right_x1,
+        cfg.ROOM_LENGTH_X,
         0.0,
-        y_carcass_front,
+        y_right_carcass,
         cfg.UPPER_C_RIGHT_BOTTOM_Z,
         cfg.ROOM_HEIGHT_Z,
-        open_face="+Y",
-        shelf_zs=cfg.UPPER_C_RIGHT_SHELF_ZS,
+    ).union(
+        _box_from_bounds(
+            toilet_front_x,
+            cfg.ROOM_LENGTH_X,
+            y_right_carcass,
+            y_right_front,
+            cfg.UPPER_C_RIGHT_BOTTOM_Z,
+            cfg.ROOM_HEIGHT_Z,
+        )
     )
+    right_cavity = _box_from_bounds(
+        right_x0 + t,
+        cfg.ROOM_LENGTH_X - t,
+        t,
+        y_right_carcass + cfg.CLEARANCE_TOLERANCE,
+        cfg.UPPER_C_RIGHT_BOTTOM_Z + t,
+        cfg.ROOM_HEIGHT_Z - t,
+    )
+    # Ensure the blind-corner front wall (x = 1451..1640, y = 270..288) stays solid while cavity reaches x = 1622
+    right_carcass = right_outer.cut(right_cavity).union(
+        _box_from_bounds(
+            toilet_front_x,
+            cfg.ROOM_LENGTH_X,
+            y_right_carcass,
+            y_right_front,
+            cfg.UPPER_C_RIGHT_BOTTOM_Z,
+            cfg.ROOM_HEIGHT_Z,
+        )
+    )
+    for sz in cfg.UPPER_C_RIGHT_SHELF_ZS:
+        shelf = _box_from_bounds(
+            right_x0 + t,
+            cfg.ROOM_LENGTH_X - t,
+            t,
+            y_right_carcass - cfg.CLEARANCE_TOLERANCE,
+            sz,
+            sz + t,
+        )
+        right_carcass = right_carcass.union(shelf)
     asm.add(
         right_carcass,
-        name="upper_c_right_carcass",
+        name="upper_c_corner_carcass",
         color=_color(cfg.COLOR_BAMBOO_CARCASS),
     )
 
-    # 2. Fixed bamboo scribe fillers at Wall D (notched for 12 mm door trim) and Wall A
+    # 2. Fixed bamboo scribe filler at Wall D (notched cleanly around 12 mm door trim)
     left_filler_raw = _box_from_bounds(
         0.0,
         left_x0,
         0.0,
-        cfg.UPPER_C_DEPTH_Y,
+        y_left_front,
         cfg.UPPER_C_LEFT_BOTTOM_Z,
         cfg.ROOM_HEIGHT_Z,
     )
@@ -380,7 +421,7 @@ def build_wall_c_upper_cabinets() -> cq.Assembly:
         -cfg.CLEARANCE_TOLERANCE,
         cfg.DOOR_FRAME_PROTRUSION + cfg.CLEARANCE_TOLERANCE,
         cfg.DOOR_TRIM_OFFSET_Y,
-        cfg.UPPER_C_DEPTH_Y + cfg.CLEARANCE_TOLERANCE,
+        y_left_front + cfg.CLEARANCE_TOLERANCE,
         cfg.UPPER_C_LEFT_BOTTOM_Z - cfg.CLEARANCE_TOLERANCE,
         cfg.DOOR_HEIGHT_Z + cfg.DOOR_FRAME_WIDTH + cfg.CLEARANCE_TOLERANCE,
     )
@@ -389,19 +430,7 @@ def build_wall_c_upper_cabinets() -> cq.Assembly:
         left_filler, name="upper_c_wall_d_scribe", color=_color(cfg.COLOR_BAMBOO_FRONT)
     )
 
-    right_filler = _box_from_bounds(
-        right_x1,
-        cfg.ROOM_LENGTH_X,
-        0.0,
-        cfg.UPPER_C_DEPTH_Y,
-        cfg.UPPER_C_RIGHT_BOTTOM_Z,
-        cfg.ROOM_HEIGHT_Z,
-    )
-    asm.add(
-        right_filler, name="upper_c_wall_a_scribe", color=_color(cfg.COLOR_BAMBOO_FRONT)
-    )
-
-    # 3. Continuous 110 mm static ceiling valance with flush matte-black exhaust vent grille
+    # 3A. Left 110 mm static ceiling valance with flush matte-black exhaust vent grille
     vent_cx = cfg.VENT_C_OFFSET_FROM_WALL_D_X + 0.5 * cfg.VENT_GRILLE_WIDTH_X
     grille_x0 = vent_cx - 0.5 * cfg.VENT_FRONT_GRILLE_WIDTH_X
     grille_x1 = vent_cx + 0.5 * cfg.VENT_FRONT_GRILLE_WIDTH_X
@@ -409,39 +438,57 @@ def build_wall_c_upper_cabinets() -> cq.Assembly:
     grille_z0 = grille_cz - 0.5 * cfg.VENT_FRONT_GRILLE_HEIGHT_Z
     grille_z1 = grille_cz + 0.5 * cfg.VENT_FRONT_GRILLE_HEIGHT_Z
 
-    valance_raw = _box_from_bounds(
+    left_valance_raw = _box_from_bounds(
         left_x0,
-        right_x1,
-        y_carcass_front,
-        cfg.UPPER_C_DEPTH_Y,
+        left_x1,
+        y_left_carcass,
+        y_left_front,
         valance_z0,
         cfg.ROOM_HEIGHT_Z,
     )
     grille_cutout = _box_from_bounds(
         grille_x0,
         grille_x1,
-        y_carcass_front - cfg.CLEARANCE_TOLERANCE,
-        cfg.UPPER_C_DEPTH_Y + cfg.CLEARANCE_TOLERANCE,
+        y_left_carcass - cfg.CLEARANCE_TOLERANCE,
+        y_left_front + cfg.CLEARANCE_TOLERANCE,
         grille_z0,
         grille_z1,
     )
-    valance = valance_raw.cut(grille_cutout)
-    asm.add(valance, name="upper_c_top_valance", color=_color(cfg.COLOR_BAMBOO_FRONT))
+    asm.add(
+        left_valance_raw.cut(grille_cutout),
+        name="upper_c_left_valance",
+        color=_color(cfg.COLOR_BAMBOO_FRONT),
+    )
 
-    # Flush matte-black louvered slot grille on valance + internal duct routing from wall_C_vent
+    # 3B. Right corner 110 mm static ceiling valance (meets toilet cabinet valance at x = 1451, y = 288!)
+    right_valance = _box_from_bounds(
+        right_x0,
+        toilet_front_x,
+        y_right_carcass,
+        y_right_front,
+        valance_z0,
+        cfg.ROOM_HEIGHT_Z,
+    )
+    asm.add(
+        right_valance,
+        name="upper_c_corner_valance",
+        color=_color(cfg.COLOR_BAMBOO_FRONT),
+    )
+
+    # Flush matte-black louvered slot grille on left valance + internal duct from wall_C_vent
     grille_outer = _box_from_bounds(
         grille_x0,
         grille_x1,
-        y_carcass_front,
-        cfg.UPPER_C_DEPTH_Y + cfg.VENT_FRONT_GRILLE_PROTRUSION,
+        y_left_carcass,
+        y_left_front + cfg.VENT_FRONT_GRILLE_PROTRUSION,
         grille_z0,
         grille_z1,
     )
     grille_inner = _box_from_bounds(
         grille_x0 + 8.0,
         grille_x1 - 8.0,
-        y_carcass_front - cfg.CLEARANCE_TOLERANCE,
-        cfg.UPPER_C_DEPTH_Y + cfg.VENT_FRONT_GRILLE_PROTRUSION + cfg.CLEARANCE_TOLERANCE,
+        y_left_carcass - cfg.CLEARANCE_TOLERANCE,
+        y_left_front + cfg.VENT_FRONT_GRILLE_PROTRUSION + cfg.CLEARANCE_TOLERANCE,
         grille_z0 + 8.0,
         grille_z1 - 8.0,
     )
@@ -451,8 +498,8 @@ def build_wall_c_upper_cabinets() -> cq.Assembly:
         slat = _box_from_bounds(
             grille_x0 + 6.0,
             grille_x1 - 6.0,
-            cfg.UPPER_C_DEPTH_Y - 6.0,
-            cfg.UPPER_C_DEPTH_Y + cfg.VENT_FRONT_GRILLE_PROTRUSION,
+            y_left_front - 6.0,
+            y_left_front + cfg.VENT_FRONT_GRILLE_PROTRUSION,
             sz - 2.0,
             sz + 2.0,
         )
@@ -463,7 +510,6 @@ def build_wall_c_upper_cabinets() -> cq.Assembly:
         color=_color(cfg.COLOR_BLACK_METAL),
     )
 
-    # Internal flat duct rising from Wall C exhaust vent to the valance grille
     wall_vent_z1 = cfg.ROOM_HEIGHT_Z - cfg.VENT_TOP_MARGIN_Z
     wall_vent_z0 = wall_vent_z1 - cfg.VENT_GRILLE_HEIGHT_Z
     duct_riser = _box_from_bounds(
@@ -478,7 +524,7 @@ def build_wall_c_upper_cabinets() -> cq.Assembly:
         vent_cx - 0.5 * cfg.VENT_DUCT_WIDTH_X,
         vent_cx + 0.5 * cfg.VENT_DUCT_WIDTH_X,
         cfg.VENT_PROTRUSION,
-        y_carcass_front,
+        y_left_carcass,
         grille_z0,
         grille_z1,
     )
@@ -488,18 +534,16 @@ def build_wall_c_upper_cabinets() -> cq.Assembly:
         color=_color(cfg.COLOR_DUCT),
     )
 
-    # 4. Hinged bamboo doors + matte-black vertical handles (2 left over basin, 2 right)
+    # 4A. Left hinged bamboo doors (2 doors over doorway + basin)
     door_z_top = cfg.CABINET_DOOR_TOP_Z
-
-    # Left pair (over doorway + basin)
     left_mid = 0.5 * (left_x0 + left_x1)
     left_doors = (
         ("upper_c_door_L1", left_x0 + 0.5 * gap, left_mid - 0.5 * gap, True),
-        ("upper_c_door_L2", left_mid + 0.5 * gap, left_x1 - 0.5 * gap, False),
+        ("upper_c_door_L2", left_mid + 0.5 * gap, left_x1 - gap, False),
     )
     for d_name, dx0, dx1, handle_on_right in left_doors:
         door = _box_from_bounds(
-            dx0, dx1, y_carcass_front, cfg.UPPER_C_DEPTH_Y, cfg.UPPER_C_LEFT_BOTTOM_Z, door_z_top
+            dx0, dx1, y_left_carcass, y_left_front, cfg.UPPER_C_LEFT_BOTTOM_Z, door_z_top
         )
         asm.add(door, name=d_name, color=_color(cfg.COLOR_BAMBOO_FRONT))
         hx_center = (
@@ -511,39 +555,62 @@ def build_wall_c_upper_cabinets() -> cq.Assembly:
         handle = _box_from_bounds(
             hx_center - 0.5 * cfg.HANDLE_WIDTH,
             hx_center + 0.5 * cfg.HANDLE_WIDTH,
-            cfg.UPPER_C_DEPTH_Y,
-            cfg.UPPER_C_DEPTH_Y + cfg.HANDLE_PROTRUSION,
+            y_left_front,
+            y_left_front + cfg.HANDLE_PROTRUSION,
             hz0,
             hz0 + cfg.HANDLE_LENGTH_Z,
         )
         asm.add(handle, name=f"{d_name}_handle", color=_color(cfg.COLOR_BLACK_METAL))
 
-    # Right pair (dropped to z = 1500 mm beside toilet)
-    right_mid = 0.5 * (right_x0 + right_x1)
-    right_doors = (
-        ("upper_c_door_R1", right_x0 + 0.5 * gap, right_mid - 0.5 * gap, True),
-        ("upper_c_door_R2", right_mid + 0.5 * gap, right_x1 - 0.5 * gap, False),
+    # 4B. Single blind-corner hinged bamboo door (x = 981.5..1449.5, hinged on left at x = 981.5!)
+    # Uses a flush matte-black recessed vertical pull (0 mm protrusion past y = 288 mm) so
+    # toilet_cab_door_R swings past 90° with zero handle clash.
+    cd_x0 = right_x0 + 0.5 * gap
+    cd_x1 = toilet_front_x - 0.5 * gap
+    chx_center = cd_x1 - cfg.HANDLE_EDGE_OFFSET
+    chz0 = cfg.UPPER_C_RIGHT_BOTTOM_Z + cfg.HANDLE_BASE_OFFSET_Z
+    chz1 = chz0 + cfg.HANDLE_LENGTH_Z
+    recess_y0 = y_right_front - cfg.HANDLE_RECESSED_DEPTH
+
+    corner_door_raw = _box_from_bounds(
+        cd_x0, cd_x1, y_right_carcass, y_right_front, cfg.UPPER_C_RIGHT_BOTTOM_Z, door_z_top
     )
-    for d_name, dx0, dx1, handle_on_right in right_doors:
-        door = _box_from_bounds(
-            dx0, dx1, y_carcass_front, cfg.UPPER_C_DEPTH_Y, cfg.UPPER_C_RIGHT_BOTTOM_Z, door_z_top
-        )
-        asm.add(door, name=d_name, color=_color(cfg.COLOR_BAMBOO_FRONT))
-        hx_center = (
-            dx1 - cfg.HANDLE_EDGE_OFFSET
-            if handle_on_right
-            else dx0 + cfg.HANDLE_EDGE_OFFSET
-        )
-        hz0 = cfg.UPPER_C_RIGHT_BOTTOM_Z + cfg.HANDLE_BASE_OFFSET_Z
-        handle = _box_from_bounds(
-            hx_center - 0.5 * cfg.HANDLE_WIDTH,
-            hx_center + 0.5 * cfg.HANDLE_WIDTH,
-            cfg.UPPER_C_DEPTH_Y,
-            cfg.UPPER_C_DEPTH_Y + cfg.HANDLE_PROTRUSION,
-            hz0,
-            hz0 + cfg.HANDLE_LENGTH_Z,
-        )
-        asm.add(handle, name=f"{d_name}_handle", color=_color(cfg.COLOR_BLACK_METAL))
+    handle_slot = _box_from_bounds(
+        chx_center - 0.5 * cfg.HANDLE_WIDTH,
+        chx_center + 0.5 * cfg.HANDLE_WIDTH,
+        recess_y0,
+        y_right_front + cfg.CLEARANCE_TOLERANCE,
+        chz0,
+        chz1,
+    )
+    asm.add(
+        corner_door_raw.cut(handle_slot),
+        name="upper_c_door_corner",
+        color=_color(cfg.COLOR_BAMBOO_FRONT),
+    )
+
+    # Recessed matte-black aluminum pull channel flush with y = 288 mm
+    handle_outer = _box_from_bounds(
+        chx_center - 0.5 * cfg.HANDLE_WIDTH,
+        chx_center + 0.5 * cfg.HANDLE_WIDTH,
+        recess_y0,
+        y_right_front,
+        chz0,
+        chz1,
+    )
+    handle_grip_void = _box_from_bounds(
+        chx_center - 0.5 * cfg.HANDLE_WIDTH + 3.0,
+        chx_center + 0.5 * cfg.HANDLE_WIDTH - 3.0,
+        recess_y0 + 3.0,
+        y_right_front + cfg.CLEARANCE_TOLERANCE,
+        chz0 + 3.0,
+        chz1 - 3.0,
+    )
+    asm.add(
+        handle_outer.cut(handle_grip_void),
+        name="upper_c_door_corner_handle_flush",
+        color=_color(cfg.COLOR_BLACK_METAL),
+    )
 
     # 5. Recessed under-cabinet LED channels above mirror (both left & right sections)
     _add_led_channel_along_x(
@@ -551,15 +618,15 @@ def build_wall_c_upper_cabinets() -> cq.Assembly:
         "upper_c_led_left",
         left_x0 + 10.0,
         left_x1 - 15.0,
-        cfg.UPPER_C_DEPTH_Y,
+        y_left_front,
         cfg.UPPER_C_LEFT_BOTTOM_Z,
     )
     _add_led_channel_along_x(
         asm,
         "upper_c_led_right",
         right_x0 + 15.0,
-        right_x1 - 10.0,
-        cfg.UPPER_C_DEPTH_Y,
+        cfg.ROOM_LENGTH_X - 15.0,
+        y_right_front,
         cfg.UPPER_C_RIGHT_BOTTOM_Z,
     )
 
@@ -689,14 +756,15 @@ def build_washer_cat() -> cq.Assembly:
     z_base = cfg.WM_TOTAL_HEIGHT_Z
     z_mat_top = z_base + cfg.CAT_MAT_THICKNESS_Z
 
-    # Local helper to orient cat parts at (CAT_CENTER_X, CAT_CENTER_Y) facing -Y + CAT_YAW_DEG
     def _place(shape: cq.Workplane) -> cq.Workplane:
         return shape.rotate((0, 0, 0), (0, 0, 1), cfg.CAT_YAW_DEG).translate(
             (cfg.CAT_CENTER_X, cfg.CAT_CENTER_Y, z_mat_top)
         )
 
-    # Cozy folded mat on top of the washing machine
-    mat_sketch = cq.Sketch().rect(cfg.CAT_MAT_WIDTH_X, cfg.CAT_MAT_DEPTH_Y).vertices().fillet(25.0)
+    # 1. Cozy folded blanket mat on top of the washing machine
+    mat_sketch = (
+        cq.Sketch().rect(cfg.CAT_MAT_WIDTH_X, cfg.CAT_MAT_DEPTH_Y).vertices().fillet(25.0)
+    )
     mat = (
         cq.Workplane("XY")
         .placeSketch(mat_sketch)
@@ -706,57 +774,38 @@ def build_washer_cat() -> cq.Assembly:
     )
     cat_asm.add(mat, name="cat_blanket_mat", color=_color(cfg.COLOR_CAT_MAT))
 
-    # Plump loafing body (rounded capsule extruded & topped with smooth dome, facing -Y)
-    body_r = 0.5 * cfg.CAT_BODY_WIDTH
-    body_straight = max(10.0, cfg.CAT_BODY_LENGTH - cfg.CAT_BODY_WIDTH)
-    body_sketch = (
-        cq.Sketch()
-        .rect(cfg.CAT_BODY_WIDTH, cfg.CAT_BODY_LENGTH)
-        .vertices()
-        .fillet(body_r - 2.0)
-    )
-    lower_body = (
+    # 2. Plump loafing torso built via multi-section smooth ellipse loft (100% OCCT-safe!)
+    rx = 0.5 * cfg.CAT_BODY_WIDTH   # 75 mm
+    ry = 0.5 * cfg.CAT_BODY_LENGTH  # 120 mm
+    h = cfg.CAT_BODY_HEIGHT         # 110 mm
+    torso = (
         cq.Workplane("XY")
-        .placeSketch(body_sketch)
-        .extrude(0.55 * cfg.CAT_BODY_HEIGHT)
+        .ellipse(rx * 0.90, ry * 0.92)
+        .workplane(offset=h * 0.22)
+        .ellipse(rx * 1.00, ry * 1.00)
+        .workplane(offset=h * 0.36)
+        .ellipse(rx * 0.92, ry * 0.94)
+        .workplane(offset=h * 0.28)
+        .ellipse(rx * 0.62, ry * 0.68)
+        .workplane(offset=h * 0.14)
+        .ellipse(rx * 0.20, ry * 0.26)
+        .loft(ruled=False)
     )
-    # Soft rounded upper back (horizontal cylinder + end spheres along Y)
-    spine_z = 0.50 * cfg.CAT_BODY_HEIGHT
-    spine_r = 0.48 * cfg.CAT_BODY_WIDTH
-    spine_cyl = (
-        cq.Workplane("XZ")
-        .workplane(offset=-0.5 * body_straight)
-        .center(0.0, spine_z)
-        .circle(spine_r)
-        .extrude(body_straight)
-    )
-    front_chest = (
-        cq.Workplane("XY")
-        .transformed(offset=(0.0, -0.5 * body_straight, spine_z))
-        .sphere(spine_r)
-    )
-    rear_haunch = (
-        cq.Workplane("XY")
-        .transformed(offset=(0.0, 0.5 * body_straight, spine_z))
-        .sphere(spine_r)
-    )
-    # Clip bottom cleanly flat at z = 0 so the loaf rests squarely on the mat
-    clip_box = _box_from_bounds(-300.0, 300.0, -300.0, 300.0, 0.0, 300.0)
-    body = lower_body.union(spine_cyl).union(front_chest).union(rear_haunch).intersect(clip_box)
+    cat_asm.add(_place(torso), name="cat_torso", color=_color(cfg.COLOR_CAT_FUR))
 
-    # Round head nestled at front-top (-Y)
-    head_y = -0.5 * cfg.CAT_BODY_LENGTH + 18.0
-    head_z = cfg.CAT_BODY_HEIGHT + 18.0
+    # 3. Round head nestled at front-top (-Y)
+    head_y = -ry + 22.0
+    head_z = h + 14.0
     head = (
         cq.Workplane("XY")
         .transformed(offset=(0.0, head_y, head_z))
         .sphere(cfg.CAT_HEAD_RADIUS)
     )
+    cat_asm.add(_place(head), name="cat_head", color=_color(cfg.COLOR_CAT_FUR))
 
-    # Two cute pointed ears on top of head
-    ear_base_z = head_z + 0.62 * cfg.CAT_HEAD_RADIUS
-    ears = None
-    for side in (-1.0, 1.0):
+    # 4. Pointed triangular ears + cute pink inner ear accents
+    ear_base_z = head_z + 0.60 * cfg.CAT_HEAD_RADIUS
+    for label, side in (("L", -1.0), ("R", 1.0)):
         ear = (
             cq.Workplane("XY")
             .circle(cfg.CAT_EAR_BASE_RADIUS)
@@ -764,58 +813,74 @@ def build_washer_cat() -> cq.Assembly:
             .circle(2.5)
             .loft()
             .rotate((0, 0, 0), (0, 1, 0), side * 16.0)
-            .translate((side * 27.0, head_y + 4.0, ear_base_z))
+            .translate((side * 26.0, head_y + 4.0, ear_base_z))
         )
-        ears = ear if ears is None else ears.union(ear)
+        cat_asm.add(_place(ear), name=f"cat_ear_{label}", color=_color(cfg.COLOR_CAT_FUR))
 
-    # Two tiny tucked front paws peeking out beneath chest
-    paws = None
-    for side in (-1.0, 1.0):
+        inner_ear = (
+            cq.Workplane("XY")
+            .circle(0.55 * cfg.CAT_EAR_BASE_RADIUS)
+            .workplane(offset=0.68 * cfg.CAT_EAR_HEIGHT)
+            .circle(1.5)
+            .loft()
+            .rotate((0, 0, 0), (0, 1, 0), side * 16.0)
+            .translate((side * 26.0, head_y - 3.5, ear_base_z + 3.0))
+        )
+        cat_asm.add(
+            _place(inner_ear),
+            name=f"cat_inner_ear_{label}",
+            color=_color(cfg.COLOR_CAT_NOSE),
+        )
+
+    # 5. Two plump tucked front paws peeking beneath the chest
+    for label, side in (("L", -1.0), ("R", 1.0)):
         paw = (
             cq.Workplane("XY")
-            .transformed(offset=(side * 30.0, -0.5 * cfg.CAT_BODY_LENGTH - 8.0, 16.0))
-            .sphere(19.0)
-            .intersect(clip_box)
+            .ellipse(18.0, 24.0)
+            .workplane(offset=14.0)
+            .ellipse(16.0, 22.0)
+            .workplane(offset=10.0)
+            .ellipse(7.0, 10.0)
+            .loft()
+            .translate((side * 28.0, -ry - 4.0, 0.0))
         )
-        paws = paw if paws is None else paws.union(paw)
+        cat_asm.add(_place(paw), name=f"cat_paw_{label}", color=_color(cfg.COLOR_CAT_FUR))
 
-    # Curled tail wrapping snugly around the right (+X) flank
+    # 6. Curled tail wrapping neatly around the right (+X) flank (smooth revolved torus arc)
     tail_r = cfg.CAT_TAIL_RADIUS
-    tail_pts = [
-        (0.0, 0.5 * cfg.CAT_BODY_LENGTH - 10.0),
-        (body_r + 14.0, 0.42 * cfg.CAT_BODY_LENGTH),
-        (body_r + 16.0, 0.0),
-        (body_r + 6.0, -0.35 * cfg.CAT_BODY_LENGTH),
-    ]
-    tail_path = cq.Workplane("XY").workplane(offset=tail_r).spline(tail_pts)
-    tail_section = (
-        cq.Workplane("YZ")
-        .workplane(offset=tail_pts[0][0])
-        .center(tail_pts[0][1], tail_r)
+    arc_r = rx + tail_r + 2.0  # wraps snugly along +X body curve
+    arc_cy = 18.0              # centered slightly toward rear haunch
+    tail_arc = (
+        cq.Workplane("XZ")
+        .center(arc_r, tail_r)
         .circle(tail_r)
+        .revolve(155.0, (-arc_r, 0.0, 0.0), (-arc_r, 1.0, 0.0))
+        .rotate((0, 0, 0), (0, 0, 1), -68.0)
+        .translate((0.0, arc_cy, 0.0))
     )
-    tail = tail_section.sweep(tail_path)
+    cat_asm.add(_place(tail_arc), name="cat_tail", color=_color(cfg.COLOR_CAT_FUR))
+
+    # Spherical rounded tail tip at the front end of the revolved arc
+    tip_angle = math.radians(-68.0)
     tail_tip = (
         cq.Workplane("XY")
-        .transformed(offset=(tail_pts[-1][0], tail_pts[-1][1], tail_r))
+        .transformed(
+            offset=(arc_r * math.cos(tip_angle), arc_cy + arc_r * math.sin(tip_angle), tail_r)
+        )
         .sphere(tail_r)
     )
+    cat_asm.add(_place(tail_tip), name="cat_tail_tip", color=_color(cfg.COLOR_CAT_FUR))
 
-    cat_fur = body.union(head).union(ears).union(paws).union(tail).union(tail_tip)
-    cat_asm.add(_place(cat_fur), name="cat_body", color=_color(cfg.COLOR_CAT_FUR))
-
-    # Eyes & tiny pink nose facing -Y
+    # 7. Glossy dark eyes & tiny pink nose facing -Y
     eye_y = head_y - cfg.CAT_HEAD_RADIUS * math.cos(math.radians(22.0))
     eye_z = head_z + 8.0
-    eyes = None
-    for side in (-1.0, 1.0):
+    for label, side in (("L", -1.0), ("R", 1.0)):
         eye = (
             cq.Workplane("XY")
             .transformed(offset=(side * 19.0, eye_y, eye_z))
             .sphere(6.0)
         )
-        eyes = eye if eyes is None else eyes.union(eye)
-    cat_asm.add(_place(eyes), name="cat_eyes", color=_color(cfg.COLOR_BLACK_METAL))
+        cat_asm.add(_place(eye), name=f"cat_eye_{label}", color=_color(cfg.COLOR_BLACK_METAL))
 
     nose = (
         cq.Workplane("XY")
