@@ -1,4 +1,4 @@
-"""Top-level dimensions, coordinates, rough-ins, and tolerances (all in mm).
+"""Top-level dimensions, coordinates, rough-ins, furniture specs, and tolerances (all in mm).
 
 Coordinate system (interior finished tile-to-tile corner origin):
   - Origin (0, 0, 0): Interior floor corner where Wall D meets Wall C.
@@ -173,15 +173,141 @@ LAMP_CENTERS_XY = (
 )
 
 # =============================================================================
-# 7. FURNITURE TOGGLES & CLEARANCE TOLERANCES (mm)
+# 7. FURNITURE DESIGN — VISION: BAMBOO FLOATING VANITY & CABINETRY (mm)
 # =============================================================================
-ENABLE_VANITY = False            # Keep False while inspecting bare existing 3D room first
+ENABLE_VANITY = True
+ENABLE_CAT = True
 
+# Shared cabinetry construction & matte-black hardware constants
+CABINET_PANEL_THICKNESS = 18.0       # Carcass boards, shelves, and hinged doors
+CABINET_DOOR_GAP = 3.0               # Clean shadow gap between doors / valance / edges
+CABINET_TOP_VALANCE_HEIGHT_Z = 110.0 # Unified ceiling fascia (z = 2275..2385, clears lamps)
+CABINET_DOOR_TOP_Z = (
+    ROOM_HEIGHT_Z - CABINET_TOP_VALANCE_HEIGHT_Z - CABINET_DOOR_GAP
+)                                    # 2272.0 mm (19 mm below 2291 mm ceiling lamp bottom)
+HANDLE_LENGTH_Z = 220.0              # Matte-black vertical bar/edge handle length
+HANDLE_WIDTH = 14.0                  # Handle face width
+HANDLE_PROTRUSION = 22.0             # Handle projection from door face
+HANDLE_EDGE_OFFSET = 22.0            # Offset from door meeting edge
+HANDLE_BASE_OFFSET_Z = 55.0          # Offset up from door bottom edge
+
+# Recessed matte-black LED profile + warm-white diffuser strip
+LED_PROFILE_WIDTH = 18.0
+LED_PROFILE_HEIGHT = 10.0
+LED_STRIP_HEIGHT = 3.0
+LED_FRONT_INSET = 28.0               # Set back from front edge of counter/cabinets
+LED_END_MARGIN = 22.0                # Inset from side walls
+
+# --- 7A. Wall C Floating Counter, Semi-Recessed Basin, Faucet & Bottle Trap ---
+COUNTER_DEPTH_Y = 200.0              # Flush with Wall D door trim (y = 200 mm)
+COUNTER_TOP_Z = 890.0                # 880-900 mm range for tall adults
+COUNTER_THICKNESS_Z = 42.0           # Solid bamboo slab (z = 848..890 mm)
+COUNTER_BOTTOM_Z = COUNTER_TOP_Z - COUNTER_THICKNESS_Z  # 848.0 mm
+
+# Hidden slim 24V LED driver tucked under counter near A-C corner cable
+LED_DRIVER_LENGTH_X = 140.0
+LED_DRIVER_DEPTH_Y = 85.0
+LED_DRIVER_HEIGHT_Z = 32.0
+LED_DRIVER_OFFSET_FROM_WALL_A_X = 25.0
+LED_DRIVER_OFFSET_FROM_WALL_C_Y = 12.0
+
+# Compact semi-recessed white ceramic basin centered over Wall C drain (x = 693 mm)
+BASIN_CENTER_X = SINK_DRAIN_X        # 693.0 mm
+BASIN_WIDTH_X = 480.0                # x = 453..933 mm (clears Wall C outlets & toilet nose)
+BASIN_DEPTH_Y = 390.0                # Overhangs 190 mm past 200 mm counter (600 mm to washer)
+BASIN_RIM_ABOVE_COUNTER_Z = 25.0     # Rim top at z = 915 mm
+BASIN_RIM_TOP_Z = COUNTER_TOP_Z + BASIN_RIM_ABOVE_COUNTER_Z  # 915.0 mm
+BASIN_TOTAL_HEIGHT_Z = 160.0         # Basin bottom at z = 755 mm
+BASIN_BOTTOM_Z = BASIN_RIM_TOP_Z - BASIN_TOTAL_HEIGHT_Z      # 755.0 mm
+BASIN_WALL_THICKNESS = 22.0
+BASIN_REAR_DECK_Y = 105.0            # Rear flat faucet deck depth
+BASIN_CAVITY_DEPTH_Z = 125.0
+BASIN_FRONT_CORNER_RADIUS = 65.0
+
+# Matte-black basin faucet & decorative bottle siphon
+FAUCET_Y = 55.0                      # Centered on rear ceramic deck
+FAUCET_BODY_DIAMETER = 42.0
+FAUCET_BODY_HEIGHT_Z = 155.0
+FAUCET_SPOUT_LENGTH_Y = 120.0
+FAUCET_SPOUT_DIAMETER = 20.0
+FAUCET_SPOUT_Z = BASIN_RIM_TOP_Z + 125.0
+FAUCET_LEVER_LENGTH_Y = 85.0
+FAUCET_LEVER_WIDTH_X = 18.0
+FAUCET_LEVER_THICKNESS_Z = 8.0
+
+SIPHON_CENTER_Y = 195.0              # Aligned under semi-recessed bowl drain
+SIPHON_PIPE_DIAMETER = 32.0
+SIPHON_BOTTLE_DIAMETER = 64.0
+SIPHON_BOTTLE_TOP_Z = SINK_DRAIN_Z + 45.0
+SIPHON_BOTTLE_BOTTOM_Z = SINK_DRAIN_Z - 45.0
+SIPHON_ESCUTCHEON_DIAMETER = 68.0
+SIPHON_ESCUTCHEON_THICKNESS = 10.0
+
+# --- 7B. Wall C Glued Stepped Mirror ---
+MIRROR_SIDE_MARGIN_X = 2.0
+MIRROR_THICKNESS_Y = 6.0
+MIRROR_BOTTOM_Z = 950.0              # 35 mm above basin rim, 60 mm above counter
+MIRROR_TOP_CLEARANCE_Z = 2.0         # Silicone expansion joint under upper cabinets
+MIRROR_OUTLET_CUTOUT_MARGIN = 1.0    # Tight factory cutout around 3-gang outlet box
+
+# --- 7C. Wall C Stepped Upper Cabinets (Uniform 255 mm Depth + Ducted Vent) ---
+UPPER_C_DEPTH_Y = 255.0              # Clears y = 260 mm doorway & 288 mm toilet cabinet
+UPPER_C_STEP_X = 980.0               # 47 mm clear to the right of the 933 mm basin edge
+UPPER_C_LEFT_BOTTOM_Z = 1850.0       # 535 mm tall over door + basin (full headroom)
+UPPER_C_RIGHT_BOTTOM_Z = 1500.0      # 885 mm tall on right half (610 mm above counter)
+UPPER_C_LEFT_FILLER_X = 20.0         # Fixed bamboo scribe at Wall D (clears 12 mm door trim)
+UPPER_C_RIGHT_FILLER_X = 15.0        # Fixed bamboo scribe at Wall A
+UPPER_C_LEFT_SHELF_Z = 2060.0
+UPPER_C_RIGHT_SHELF_ZS = (1760.0, 2020.0)
+
+# Ducted exhaust vent through Wall C upper cabinet to flush black grille in 110 mm valance
+VENT_DUCT_WIDTH_X = 204.0            # Standard flat rectangular duct (204 x 60 mm)
+VENT_DUCT_HEIGHT_Z = 60.0
+VENT_FRONT_GRILLE_WIDTH_X = 240.0    # Flush matte-black slot grille on top valance
+VENT_FRONT_GRILLE_HEIGHT_Z = 64.0
+VENT_FRONT_GRILLE_PROTRUSION = 4.0
+
+# --- 7D. Wall A Toilet Cabinet (Flush with Cistern, Double Doors + 110 mm Valance) ---
+TOILET_CAB_DEPTH_X = CISTERN_DEPTH_X       # 189.0 mm (flush with cistern front)
+TOILET_CAB_Y0 = CISTERN_GAP_FROM_WALL_C    # 288.0 mm (33 mm clear of Wall C cabinets)
+TOILET_CAB_Y1 = CISTERN_GAP_FROM_WALL_C + CISTERN_WIDTH_Y  # 1023.0 mm (touches shower)
+TOILET_CAB_BOTTOM_Z = CISTERN_HEIGHT_Z     # 1195.0 mm (enclosed down to cistern ledge)
+TOILET_CAB_SHELF_ZS = (1465.0, 1735.0, 2005.0)
+
+# --- 7E. Wall B Washing Machine Cabinet (Flush with 550 mm Pipe Cover) ---
+WASHER_CAB_X0 = PIPE_COVER_WIDTH_X         # 173.0 mm (bolts into pipe cover framing)
+WASHER_CAB_SHOWER_GAP_X = 6.0              # Safety vibration gap to shower glass
+WASHER_CAB_X1 = SHOWER_START_X - WASHER_CAB_SHOWER_GAP_X  # 800.0 mm (627 mm wide)
+WASHER_CAB_DEPTH_Y = PIPE_COVER_DEPTH_Y    # 550.0 mm (flush with pipe cover, y = 1160..1710)
+WASHER_CAB_BOTTOM_Z = 1350.0               # 508 mm cat space over washer; 87 mm above sockets
+WASHER_CAB_SHELF_ZS = (1655.0, 1965.0)
+
+# --- 7F. Stylized Loafing Cat Perched on Washing Machine ---
+CAT_CENTER_X = 490.0                 # Centered on washer top
+CAT_CENTER_Y = 1315.0                # Cozy spot forward of hose gap
+CAT_YAW_DEG = -25.0                  # Angled slightly toward entrance doorway
+CAT_MAT_WIDTH_X = 360.0
+CAT_MAT_DEPTH_Y = 270.0
+CAT_MAT_THICKNESS_Z = 10.0
+CAT_BODY_LENGTH = 240.0
+CAT_BODY_WIDTH = 150.0
+CAT_BODY_HEIGHT = 110.0
+CAT_HEAD_RADIUS = 50.0
+CAT_EAR_HEIGHT = 36.0
+CAT_EAR_BASE_RADIUS = 18.0
+CAT_TAIL_RADIUS = 15.0
+
+# =============================================================================
+# 8. CLEARANCE TOLERANCES (mm)
+# =============================================================================
 CLEARANCE_TOLERANCE = 2.0        # General assembly clearance tolerance
 MIN_WALKWAY_CLEARANCE = 500.0    # Minimum comfortable passage width in front of fixtures
+MIN_BASIN_WALKWAY_CLEARANCE = 580.0  # Minimum standing space between basin front and washer
+MIN_CAT_HEADROOM_Z = 450.0       # Minimum comfortable headroom above washing machine for cat
+MIN_LAMP_DOOR_CLEARANCE = 15.0   # Minimum vertical/horizontal clearance from ceiling lamps
 
 # =============================================================================
-# 8. VIEWER COLORS & TRANSPARENCIES (RGBA in 0..1)
+# 9. VIEWER COLORS & TRANSPARENCIES (RGBA in 0..1)
 # =============================================================================
 WALL_ALPHA = 0.22
 CEILING_ALPHA = 0.08
@@ -203,3 +329,14 @@ COLOR_COLD_WATER = (0.18, 0.48, 0.85, 1.0)
 COLOR_DRAIN_PIPE = (0.45, 0.47, 0.50, 1.0)
 COLOR_VENT = (0.90, 0.90, 0.90, 1.0)
 COLOR_ELECTRICAL_CABLE = (0.95, 0.65, 0.10, 1.0)
+
+# Furniture vision palette: natural bamboo + matte-black accents + warm LEDs
+COLOR_BAMBOO_COUNTER = (0.80, 0.63, 0.39, 1.0)
+COLOR_BAMBOO_CARCASS = (0.76, 0.59, 0.36, 1.0)
+COLOR_BAMBOO_FRONT = (0.84, 0.67, 0.43, 1.0)
+COLOR_MIRROR = (0.76, 0.84, 0.89, 0.88)
+COLOR_LED_WARM = (1.00, 0.92, 0.72, 1.0)
+COLOR_DUCT = (0.70, 0.72, 0.75, 0.65)
+COLOR_CAT_FUR = (0.86, 0.54, 0.26, 1.0)
+COLOR_CAT_NOSE = (0.92, 0.60, 0.62, 1.0)
+COLOR_CAT_MAT = (0.58, 0.63, 0.60, 1.0)
