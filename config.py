@@ -131,16 +131,19 @@ OUTLET_C_HEIGHT_Z = 85.0
 OUTLET_C_DEPTH_Y = 18.0
 OUTLET_C_BOTTOM_Z = 1185.0       # WallC.jpg: 118.5 cm from floor
 
-# Sink plumbing rough-ins on Wall C (to be updated with exact measurements from Wall C sketch)
-SINK_WATER_HOT_X = 485.0         # [ASSUMED] Left water supply valve X from Wall D (1:10 sketch)
-SINK_DRAIN_X = 560.0             # [ASSUMED] Central waste pipe X from Wall D (1:10 sketch)
-SINK_WATER_COLD_X = 635.0        # [ASSUMED] Right water supply valve X from Wall D (1:10 sketch)
-SINK_WATER_Z = 560.0             # [ASSUMED] Water outlet height from floor
-SINK_DRAIN_Z = 510.0             # [ASSUMED] Drain center height from floor
-SINK_VALVE_SIZE_X = 40.0         # [ASSUMED] Angle-valve block width (TopView.jpg rectangles)
-SINK_VALVE_SIZE_Z = 40.0         # [ASSUMED] Angle-valve block height
+# Sink plumbing rough-ins on Wall C (measured: outer edges 210 mm, centers 151 mm, left edge 588 mm)
+SINK_VALVE_SIZE_X = 59.0         # Derived from 210 - 151 = 59 mm rosette width
+SINK_VALVE_SIZE_Z = 59.0         # [ASSUMED] Matching circular/square rosette height
+SINK_WATER_LEFT_EDGE_X = 588.0   # Measured: left outer edge of left water outlet from Wall D
+SINK_WATER_CENTER_SPACING = 151.0  # Measured: center-to-center spacing between water outlets
+SINK_WATER_HOT_X = SINK_WATER_LEFT_EDGE_X + 0.5 * SINK_VALVE_SIZE_X  # 617.5 mm
+SINK_WATER_COLD_X = SINK_WATER_HOT_X + SINK_WATER_CENTER_SPACING     # 768.5 mm
+SINK_DRAIN_X = 0.5 * (SINK_WATER_HOT_X + SINK_WATER_COLD_X)          # 693.0 mm (centered)
+SINK_DRAIN_DIAMETER = 50.0       # [ASSUMED] Standard 50 mm DN50 waste hole
+SINK_DRAIN_BOTTOM_Z = 495.0      # Measured: bottom edge of sewage hole above floor
+SINK_DRAIN_Z = SINK_DRAIN_BOTTOM_Z + 0.5 * SINK_DRAIN_DIAMETER       # 520.0 mm
+SINK_WATER_Z = SINK_DRAIN_Z      # [ASSUMED] Aligned horizontally with drain per WallC.jpg
 SINK_VALVE_PROTRUSION_Y = 65.0   # [ASSUMED] Valve projection from Wall C (TopView.jpg)
-SINK_DRAIN_DIAMETER = 50.0       # [ASSUMED] Standard 50 mm DN50 waste stub
 SINK_DRAIN_PROTRUSION_Y = 45.0   # [ASSUMED] Waste stub projection from Wall C
 
 # Under-counter LED electrical cable stub near floor in A-C corner
