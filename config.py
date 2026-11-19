@@ -250,16 +250,15 @@ MIRROR_BOTTOM_Z = 950.0              # 35 mm above basin rim, 60 mm above counte
 MIRROR_TOP_CLEARANCE_Z = 2.0         # Silicone expansion joint under upper cabinets
 MIRROR_OUTLET_CUTOUT_MARGIN = 1.0    # Tight factory cutout around 3-gang outlet box
 
-# --- 7C. Wall C Stepped Upper Cabinets (Left 255 mm + Right 288 mm Blind-Corner + Ducted Vent) ---
-UPPER_C_LEFT_DEPTH_Y = 255.0         # Clears y = 260 mm doorway opening
-UPPER_C_RIGHT_DEPTH_Y = CISTERN_GAP_FROM_WALL_C  # 288.0 mm: flush against toilet cabinet (zero gap!)
+# --- 7C. Wall C Stepped Upper Cabinets (Uniform 255 mm Front + 288 mm L-Shaped Blind Corner) ---
+UPPER_C_DEPTH_Y = 255.0              # Uniform flush front across Wall C (clears y = 260 doorway & 22 mm handle!)
+UPPER_C_CORNER_RETURN_DEPTH_Y = CISTERN_GAP_FROM_WALL_C  # 288.0 mm: L-base flush against toilet cabinet (zero gap!)
 UPPER_C_STEP_X = 980.0               # 47 mm clear to the right of the 933 mm basin edge
 UPPER_C_LEFT_BOTTOM_Z = 1850.0       # 535 mm tall over door + basin (full headroom)
-UPPER_C_RIGHT_BOTTOM_Z = 1500.0      # 885 mm tall on right blind-corner cabinet (610 mm above counter)
+UPPER_C_RIGHT_BOTTOM_Z = 1500.0      # 885 mm tall on right L-shaped blind-corner cabinet (610 mm above counter)
 UPPER_C_LEFT_FILLER_X = 20.0         # Fixed bamboo scribe at Wall D (clears 12 mm door trim)
 UPPER_C_LEFT_SHELF_Z = 2060.0
 UPPER_C_RIGHT_SHELF_ZS = (1760.0, 2020.0)
-HANDLE_RECESSED_DEPTH = 12.0         # Flush matte-black recessed vertical pull on corner door (0 mm clash!)
 
 # Ducted exhaust vent through Wall C upper cabinet to flush black grille in 110 mm valance
 VENT_DUCT_WIDTH_X = 204.0            # Standard flat rectangular duct (204 x 60 mm)

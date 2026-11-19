@@ -100,12 +100,19 @@ def run_furniture_assertions() -> None:
         f"Basin-to-washer standing clearance too tight: {basin_standing_space_y:.0f} mm"
     )
 
-    # 3. Wall C upper cabinets clear clear doorway opening, mate flush to toilet cabinet, and clear ceiling lamps
-    assert cfg.UPPER_C_LEFT_DEPTH_Y < cfg.DOOR_OFFSET_Y, (
-        f"Wall C left upper cabinets ({cfg.UPPER_C_LEFT_DEPTH_Y} mm) intrude into clear doorway ({cfg.DOOR_OFFSET_Y} mm)"
+    # 3. Wall C upper cabinets clear clear doorway opening, mate flush to toilet cabinet via L-return,
+    #    leave handle clearance to toilet_cab_door_R, and clear ceiling lamps
+    assert cfg.UPPER_C_DEPTH_Y < cfg.DOOR_OFFSET_Y, (
+        f"Wall C upper cabinets ({cfg.UPPER_C_DEPTH_Y} mm) intrude into clear doorway ({cfg.DOOR_OFFSET_Y} mm)"
     )
-    assert abs(cfg.UPPER_C_RIGHT_DEPTH_Y - cfg.TOILET_CAB_Y0) <= cfg.CLEARANCE_TOLERANCE, (
-        f"Wall C blind-corner cabinet ({cfg.UPPER_C_RIGHT_DEPTH_Y} mm) should mate flush with toilet cabinet (y={cfg.TOILET_CAB_Y0} mm)"
+    assert abs(cfg.UPPER_C_CORNER_RETURN_DEPTH_Y - cfg.TOILET_CAB_Y0) <= cfg.CLEARANCE_TOLERANCE, (
+        f"Wall C L-corner return ({cfg.UPPER_C_CORNER_RETURN_DEPTH_Y} mm) must mate flush with toilet cabinet (y={cfg.TOILET_CAB_Y0} mm)"
+    )
+    corner_handle_clearance_y = cfg.TOILET_CAB_Y0 - (
+        cfg.UPPER_C_DEPTH_Y + cfg.HANDLE_PROTRUSION
+    )
+    assert corner_handle_clearance_y >= 5.0, (
+        f"Corner door bar handle clashes with toilet_cab_door_R swing plane: {corner_handle_clearance_y:.1f} mm"
     )
     assert cfg.UPPER_C_STEP_X > basin_x1, (
         f"Wall C upper cabinet step ({cfg.UPPER_C_STEP_X} mm) overhangs basin right edge ({basin_x1} mm)"
@@ -152,7 +159,7 @@ def run_furniture_assertions() -> None:
     print(
         f"[OK] Furniture vision verified | Basin walkway: {basin_standing_space_y:.0f} mm | "
         f"Lamp-to-door Z clearance: {lamp_door_clearance_z:.0f} mm | "
-        f"Blind-corner single door: {corner_door_width:.0f} mm (0 mm gap to toilet cab) | "
+        f"L-corner door: {corner_door_width:.0f} mm (handle clearance to toilet door: {corner_handle_clearance_y:.0f} mm) | "
         f"Cat headroom: {cat_headroom_z:.0f} mm"
     )
 

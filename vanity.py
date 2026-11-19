@@ -321,15 +321,14 @@ def build_wall_c_mirror() -> cq.Assembly:
 
 
 def build_wall_c_upper_cabinets() -> cq.Assembly:
-    """Build Wall C stepped upper cabinets: left 255 mm (2 doors + ducted vent) & right 288 mm blind-corner (1 door)."""
+    """Build Wall C stepped upper cabinets: uniform 255 mm front + true L-shaped 288 mm blind-corner."""
     asm = cq.Assembly(name="wall_c_upper_cabinets")
 
     t = cfg.CABINET_PANEL_THICKNESS
     gap = cfg.CABINET_DOOR_GAP
-    y_left_front = cfg.UPPER_C_LEFT_DEPTH_Y            # 255.0 mm
-    y_left_carcass = y_left_front - t                  # 237.0 mm
-    y_right_front = cfg.UPPER_C_RIGHT_DEPTH_Y          # 288.0 mm (flush with toilet cabinet!)
-    y_right_carcass = y_right_front - t                # 270.0 mm
+    y_front = cfg.UPPER_C_DEPTH_Y                      # 255.0 mm continuous flush front
+    y_carcass = y_front - t                            # 237.0 mm
+    y_corner_return = cfg.UPPER_C_CORNER_RETURN_DEPTH_Y  # 288.0 mm flush against toilet cabinet
     valance_z0 = cfg.ROOM_HEIGHT_Z - cfg.CABINET_TOP_VALANCE_HEIGHT_Z
 
     left_x0 = cfg.UPPER_C_LEFT_FILLER_X                # 20.0 mm
@@ -342,7 +341,7 @@ def build_wall_c_upper_cabinets() -> cq.Assembly:
         left_x0,
         left_x1,
         0.0,
-        y_left_carcass,
+        y_carcass,
         cfg.UPPER_C_LEFT_BOTTOM_Z,
         cfg.ROOM_HEIGHT_Z,
         open_face="+Y",
@@ -354,57 +353,71 @@ def build_wall_c_upper_cabinets() -> cq.Assembly:
         color=_color(cfg.COLOR_BAMBOO_CARCASS),
     )
 
-    # 1B. Right blind-corner carcass (x = 980..1640, y = 0..288, z = 1500..2385)
-    # Open on x = 980..1451, closed flush against the toilet cabinet side (y = 288) for x = 1451..1640.
-    right_outer = _box_from_bounds(
-        right_x0,
-        cfg.ROOM_LENGTH_X,
-        0.0,
-        y_right_carcass,
-        cfg.UPPER_C_RIGHT_BOTTOM_Z,
-        cfg.ROOM_HEIGHT_Z,
+    # 1B. True L-shaped blind-corner carcass (x = 980..1640, z = 1500..2385):
+    # Main arm is 237 mm deep behind the 18 mm door (y = 0..237); short L-base behind the
+    # toilet cabinet (x = 1451..1640) expands cleanly to y = 288 mm with 18 mm walls & L-shelves.
+    z_r0, z_r1 = cfg.UPPER_C_RIGHT_BOTTOM_Z, cfg.ROOM_HEIGHT_Z
+    corner_outer = _box_from_bounds(
+        right_x0, cfg.ROOM_LENGTH_X, 0.0, y_carcass, z_r0, z_r1
     ).union(
         _box_from_bounds(
-            toilet_front_x,
-            cfg.ROOM_LENGTH_X,
-            y_right_carcass,
-            y_right_front,
-            cfg.UPPER_C_RIGHT_BOTTOM_Z,
-            cfg.ROOM_HEIGHT_Z,
+            toilet_front_x, cfg.ROOM_LENGTH_X, y_carcass, y_corner_return, z_r0, z_r1
         )
     )
-    right_cavity = _box_from_bounds(
+    # Hollow out the main open span (x = 998..1451 open to +Y, x = 1451..1622 inside main arm)
+    # plus the deeper L-leg cavity (x = 1469..1622, y = 18..270), keeping an 18 mm return wall
+    # at x = 1451..1469 (flush with toilet cabinet front) and 18 mm cheek at y = 270..288.
+    main_open_cavity = _box_from_bounds(
         right_x0 + t,
+        toilet_front_x,
+        t,
+        y_carcass + cfg.CLEARANCE_TOLERANCE,
+        z_r0 + t,
+        z_r1 - t,
+    )
+    main_blind_cavity = _box_from_bounds(
+        toilet_front_x - cfg.CLEARANCE_TOLERANCE,
         cfg.ROOM_LENGTH_X - t,
         t,
-        y_right_carcass + cfg.CLEARANCE_TOLERANCE,
-        cfg.UPPER_C_RIGHT_BOTTOM_Z + t,
-        cfg.ROOM_HEIGHT_Z - t,
+        y_carcass,
+        z_r0 + t,
+        z_r1 - t,
     )
-    # Ensure the blind-corner front wall (x = 1451..1640, y = 270..288) stays solid while cavity reaches x = 1622
-    right_carcass = right_outer.cut(right_cavity).union(
-        _box_from_bounds(
-            toilet_front_x,
-            cfg.ROOM_LENGTH_X,
-            y_right_carcass,
-            y_right_front,
-            cfg.UPPER_C_RIGHT_BOTTOM_Z,
-            cfg.ROOM_HEIGHT_Z,
-        )
+    l_leg_cavity = _box_from_bounds(
+        toilet_front_x + t,
+        cfg.ROOM_LENGTH_X - t,
+        t,
+        y_corner_return - t,
+        z_r0 + t,
+        z_r1 - t,
     )
+    corner_carcass = (
+        corner_outer.cut(main_open_cavity).cut(main_blind_cavity).cut(l_leg_cavity)
+    )
+
+    # Proper L-shaped internal shelves filling both the main arm and the deeper blind L-leg
     for sz in cfg.UPPER_C_RIGHT_SHELF_ZS:
-        shelf = _box_from_bounds(
+        shelf_main = _box_from_bounds(
             right_x0 + t,
             cfg.ROOM_LENGTH_X - t,
             t,
-            y_right_carcass - cfg.CLEARANCE_TOLERANCE,
+            y_carcass - cfg.CLEARANCE_TOLERANCE,
             sz,
             sz + t,
         )
-        right_carcass = right_carcass.union(shelf)
+        shelf_l_leg = _box_from_bounds(
+            toilet_front_x + t,
+            cfg.ROOM_LENGTH_X - t,
+            t,
+            y_corner_return - t,
+            sz,
+            sz + t,
+        )
+        corner_carcass = corner_carcass.union(shelf_main.union(shelf_l_leg))
+
     asm.add(
-        right_carcass,
-        name="upper_c_corner_carcass",
+        corner_carcass,
+        name="upper_c_corner_carcass_L",
         color=_color(cfg.COLOR_BAMBOO_CARCASS),
     )
 
@@ -413,7 +426,7 @@ def build_wall_c_upper_cabinets() -> cq.Assembly:
         0.0,
         left_x0,
         0.0,
-        y_left_front,
+        y_front,
         cfg.UPPER_C_LEFT_BOTTOM_Z,
         cfg.ROOM_HEIGHT_Z,
     )
@@ -421,7 +434,7 @@ def build_wall_c_upper_cabinets() -> cq.Assembly:
         -cfg.CLEARANCE_TOLERANCE,
         cfg.DOOR_FRAME_PROTRUSION + cfg.CLEARANCE_TOLERANCE,
         cfg.DOOR_TRIM_OFFSET_Y,
-        y_left_front + cfg.CLEARANCE_TOLERANCE,
+        y_front + cfg.CLEARANCE_TOLERANCE,
         cfg.UPPER_C_LEFT_BOTTOM_Z - cfg.CLEARANCE_TOLERANCE,
         cfg.DOOR_HEIGHT_Z + cfg.DOOR_FRAME_WIDTH + cfg.CLEARANCE_TOLERANCE,
     )
@@ -430,7 +443,8 @@ def build_wall_c_upper_cabinets() -> cq.Assembly:
         left_filler, name="upper_c_wall_d_scribe", color=_color(cfg.COLOR_BAMBOO_FRONT)
     )
 
-    # 3A. Left 110 mm static ceiling valance with flush matte-black exhaust vent grille
+    # 3. ONE unbroken 110 mm static ceiling valance across all of Wall C (x = 20..1451)
+    # with flush matte-black louvered exhaust vent grille + internal duct
     vent_cx = cfg.VENT_C_OFFSET_FROM_WALL_D_X + 0.5 * cfg.VENT_GRILLE_WIDTH_X
     grille_x0 = vent_cx - 0.5 * cfg.VENT_FRONT_GRILLE_WIDTH_X
     grille_x1 = vent_cx + 0.5 * cfg.VENT_FRONT_GRILLE_WIDTH_X
@@ -438,57 +452,41 @@ def build_wall_c_upper_cabinets() -> cq.Assembly:
     grille_z0 = grille_cz - 0.5 * cfg.VENT_FRONT_GRILLE_HEIGHT_Z
     grille_z1 = grille_cz + 0.5 * cfg.VENT_FRONT_GRILLE_HEIGHT_Z
 
-    left_valance_raw = _box_from_bounds(
+    valance_raw = _box_from_bounds(
         left_x0,
-        left_x1,
-        y_left_carcass,
-        y_left_front,
+        toilet_front_x,
+        y_carcass,
+        y_front,
         valance_z0,
         cfg.ROOM_HEIGHT_Z,
     )
     grille_cutout = _box_from_bounds(
         grille_x0,
         grille_x1,
-        y_left_carcass - cfg.CLEARANCE_TOLERANCE,
-        y_left_front + cfg.CLEARANCE_TOLERANCE,
+        y_carcass - cfg.CLEARANCE_TOLERANCE,
+        y_front + cfg.CLEARANCE_TOLERANCE,
         grille_z0,
         grille_z1,
     )
     asm.add(
-        left_valance_raw.cut(grille_cutout),
-        name="upper_c_left_valance",
+        valance_raw.cut(grille_cutout),
+        name="upper_c_top_valance",
         color=_color(cfg.COLOR_BAMBOO_FRONT),
     )
 
-    # 3B. Right corner 110 mm static ceiling valance (meets toilet cabinet valance at x = 1451, y = 288!)
-    right_valance = _box_from_bounds(
-        right_x0,
-        toilet_front_x,
-        y_right_carcass,
-        y_right_front,
-        valance_z0,
-        cfg.ROOM_HEIGHT_Z,
-    )
-    asm.add(
-        right_valance,
-        name="upper_c_corner_valance",
-        color=_color(cfg.COLOR_BAMBOO_FRONT),
-    )
-
-    # Flush matte-black louvered slot grille on left valance + internal duct from wall_C_vent
     grille_outer = _box_from_bounds(
         grille_x0,
         grille_x1,
-        y_left_carcass,
-        y_left_front + cfg.VENT_FRONT_GRILLE_PROTRUSION,
+        y_carcass,
+        y_front + cfg.VENT_FRONT_GRILLE_PROTRUSION,
         grille_z0,
         grille_z1,
     )
     grille_inner = _box_from_bounds(
         grille_x0 + 8.0,
         grille_x1 - 8.0,
-        y_left_carcass - cfg.CLEARANCE_TOLERANCE,
-        y_left_front + cfg.VENT_FRONT_GRILLE_PROTRUSION + cfg.CLEARANCE_TOLERANCE,
+        y_carcass - cfg.CLEARANCE_TOLERANCE,
+        y_front + cfg.VENT_FRONT_GRILLE_PROTRUSION + cfg.CLEARANCE_TOLERANCE,
         grille_z0 + 8.0,
         grille_z1 - 8.0,
     )
@@ -498,8 +496,8 @@ def build_wall_c_upper_cabinets() -> cq.Assembly:
         slat = _box_from_bounds(
             grille_x0 + 6.0,
             grille_x1 - 6.0,
-            y_left_front - 6.0,
-            y_left_front + cfg.VENT_FRONT_GRILLE_PROTRUSION,
+            y_front - 6.0,
+            y_front + cfg.VENT_FRONT_GRILLE_PROTRUSION,
             sz - 2.0,
             sz + 2.0,
         )
@@ -524,7 +522,7 @@ def build_wall_c_upper_cabinets() -> cq.Assembly:
         vent_cx - 0.5 * cfg.VENT_DUCT_WIDTH_X,
         vent_cx + 0.5 * cfg.VENT_DUCT_WIDTH_X,
         cfg.VENT_PROTRUSION,
-        y_left_carcass,
+        y_carcass,
         grille_z0,
         grille_z1,
     )
@@ -534,16 +532,16 @@ def build_wall_c_upper_cabinets() -> cq.Assembly:
         color=_color(cfg.COLOR_DUCT),
     )
 
-    # 4A. Left hinged bamboo doors (2 doors over doorway + basin)
+    # 4A. Left hinged bamboo doors (2 doors over doorway + basin) with matching black bar handles
     door_z_top = cfg.CABINET_DOOR_TOP_Z
     left_mid = 0.5 * (left_x0 + left_x1)
     left_doors = (
         ("upper_c_door_L1", left_x0 + 0.5 * gap, left_mid - 0.5 * gap, True),
-        ("upper_c_door_L2", left_mid + 0.5 * gap, left_x1 - gap, False),
+        ("upper_c_door_L2", left_mid + 0.5 * gap, left_x1 - 0.5 * gap, False),
     )
     for d_name, dx0, dx1, handle_on_right in left_doors:
         door = _box_from_bounds(
-            dx0, dx1, y_left_carcass, y_left_front, cfg.UPPER_C_LEFT_BOTTOM_Z, door_z_top
+            dx0, dx1, y_carcass, y_front, cfg.UPPER_C_LEFT_BOTTOM_Z, door_z_top
         )
         asm.add(door, name=d_name, color=_color(cfg.COLOR_BAMBOO_FRONT))
         hx_center = (
@@ -555,70 +553,46 @@ def build_wall_c_upper_cabinets() -> cq.Assembly:
         handle = _box_from_bounds(
             hx_center - 0.5 * cfg.HANDLE_WIDTH,
             hx_center + 0.5 * cfg.HANDLE_WIDTH,
-            y_left_front,
-            y_left_front + cfg.HANDLE_PROTRUSION,
+            y_front,
+            y_front + cfg.HANDLE_PROTRUSION,
             hz0,
             hz0 + cfg.HANDLE_LENGTH_Z,
         )
         asm.add(handle, name=f"{d_name}_handle", color=_color(cfg.COLOR_BLACK_METAL))
 
-    # 4B. Single blind-corner hinged bamboo door (x = 981.5..1449.5, hinged on left at x = 981.5!)
-    # Uses a flush matte-black recessed vertical pull (0 mm protrusion past y = 288 mm) so
-    # toilet_cab_door_R swings past 90° with zero handle clash.
+    # 4B. Single blind-corner hinged bamboo door (x = 981.5..1449.5, flush at y = 255 mm)
+    # Hinged on the left (x = 981.5) with matching protruding matte-black bar handle at y = 255..277
+    # (leaves 11 mm clearance before toilet_cab_door_R swing plane at y = 288 mm!).
     cd_x0 = right_x0 + 0.5 * gap
     cd_x1 = toilet_front_x - 0.5 * gap
+    corner_door = _box_from_bounds(
+        cd_x0, cd_x1, y_carcass, y_front, cfg.UPPER_C_RIGHT_BOTTOM_Z, door_z_top
+    )
+    asm.add(corner_door, name="upper_c_door_corner", color=_color(cfg.COLOR_BAMBOO_FRONT))
+
     chx_center = cd_x1 - cfg.HANDLE_EDGE_OFFSET
     chz0 = cfg.UPPER_C_RIGHT_BOTTOM_Z + cfg.HANDLE_BASE_OFFSET_Z
-    chz1 = chz0 + cfg.HANDLE_LENGTH_Z
-    recess_y0 = y_right_front - cfg.HANDLE_RECESSED_DEPTH
-
-    corner_door_raw = _box_from_bounds(
-        cd_x0, cd_x1, y_right_carcass, y_right_front, cfg.UPPER_C_RIGHT_BOTTOM_Z, door_z_top
-    )
-    handle_slot = _box_from_bounds(
+    corner_handle = _box_from_bounds(
         chx_center - 0.5 * cfg.HANDLE_WIDTH,
         chx_center + 0.5 * cfg.HANDLE_WIDTH,
-        recess_y0,
-        y_right_front + cfg.CLEARANCE_TOLERANCE,
+        y_front,
+        y_front + cfg.HANDLE_PROTRUSION,
         chz0,
-        chz1,
+        chz0 + cfg.HANDLE_LENGTH_Z,
     )
     asm.add(
-        corner_door_raw.cut(handle_slot),
-        name="upper_c_door_corner",
-        color=_color(cfg.COLOR_BAMBOO_FRONT),
-    )
-
-    # Recessed matte-black aluminum pull channel flush with y = 288 mm
-    handle_outer = _box_from_bounds(
-        chx_center - 0.5 * cfg.HANDLE_WIDTH,
-        chx_center + 0.5 * cfg.HANDLE_WIDTH,
-        recess_y0,
-        y_right_front,
-        chz0,
-        chz1,
-    )
-    handle_grip_void = _box_from_bounds(
-        chx_center - 0.5 * cfg.HANDLE_WIDTH + 3.0,
-        chx_center + 0.5 * cfg.HANDLE_WIDTH - 3.0,
-        recess_y0 + 3.0,
-        y_right_front + cfg.CLEARANCE_TOLERANCE,
-        chz0 + 3.0,
-        chz1 - 3.0,
-    )
-    asm.add(
-        handle_outer.cut(handle_grip_void),
-        name="upper_c_door_corner_handle_flush",
+        corner_handle,
+        name="upper_c_door_corner_handle",
         color=_color(cfg.COLOR_BLACK_METAL),
     )
 
-    # 5. Recessed under-cabinet LED channels above mirror (both left & right sections)
+    # 5. Aligned recessed under-cabinet LED channels above mirror (same Y inset across Wall C)
     _add_led_channel_along_x(
         asm,
         "upper_c_led_left",
         left_x0 + 10.0,
         left_x1 - 15.0,
-        y_left_front,
+        y_front,
         cfg.UPPER_C_LEFT_BOTTOM_Z,
     )
     _add_led_channel_along_x(
@@ -626,7 +600,7 @@ def build_wall_c_upper_cabinets() -> cq.Assembly:
         "upper_c_led_right",
         right_x0 + 15.0,
         cfg.ROOM_LENGTH_X - 15.0,
-        y_right_front,
+        y_front,
         cfg.UPPER_C_RIGHT_BOTTOM_Z,
     )
 
