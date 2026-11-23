@@ -164,76 +164,66 @@ def build_wall_c_counter_and_basin() -> cq.Assembly:
     )
     asm.add(led_driver, name="led_driver_24v", color=_color(cfg.COLOR_BLACK_METAL))
 
-    # 4. Omnires Corfu M+ (500 x 250 x 150 mm; 100 mm straight upper rim + 50 mm tapered M+ base)
+    # 4. Catalano Verso 50x25 (500 x 250 x 120 mm) crisp straight-sided block with tapered inner bowl
     # Placed 10 mm clear of the glued mirror (y = 16..266 mm), leaving 184 mm supported on bamboo.
-    plinth_h = cfg.BASIN_TOTAL_HEIGHT_Z - cfg.BASIN_RIM_HEIGHT_Z  # 50.0 mm
-    rim_z0 = cfg.BASIN_BOTTOM_Z + plinth_h                        # 810.0 mm
-    w_base = cfg.BASIN_WIDTH_X - 2.0 * cfg.BASIN_BASE_INSET
-    d_base = cfg.BASIN_DEPTH_Y - 2.0 * cfg.BASIN_BASE_INSET
-
-    upper_sketch = (
+    outer_sketch = (
         cq.Sketch()
         .rect(cfg.BASIN_WIDTH_X, cfg.BASIN_DEPTH_Y)
         .vertices()
         .fillet(cfg.BASIN_OUTER_CORNER_RADIUS)
     )
-    basin_upper = (
+    basin_outer = (
         cq.Workplane("XY")
-        .placeSketch(upper_sketch)
-        .extrude(cfg.BASIN_RIM_HEIGHT_Z)
-        .translate((cfg.BASIN_CENTER_X, cfg.BASIN_CENTER_Y, rim_z0))
-    )
-
-    base_r = max(4.0, cfg.BASIN_OUTER_CORNER_RADIUS - 2.0)
-    base_sketch = cq.Sketch().rect(w_base, d_base).vertices().fillet(base_r)
-    basin_plinth = (
-        cq.Workplane("XY")
-        .placeSketch(base_sketch, upper_sketch.moved(cq.Location((0, 0, plinth_h))))
-        .loft()
+        .placeSketch(outer_sketch)
+        .extrude(cfg.BASIN_TOTAL_HEIGHT_Z)
         .translate((cfg.BASIN_CENTER_X, cfg.BASIN_CENTER_Y, cfg.BASIN_BOTTOM_Z))
     )
-    basin_outer = basin_upper.union(basin_plinth)
 
-    # Asymmetric washing bowl cavity (leaving BASIN_TAP_DECK_WIDTH_X solid deck on the tap side)
+    # Sloped inner washing bowl (390 x 226 mm at rim, tapering smoothly to 320 x 180 mm at -80 mm)
     if cfg.BASIN_TAP_SIDE == "right":
         cav_x0 = cfg.BASIN_X0 + cfg.BASIN_TAP_DECK_WIDTH_X
-        cav_x1 = cfg.BASIN_X1 - cfg.BASIN_WALL_THICKNESS
+        cav_x1 = cfg.BASIN_X1 - cfg.BASIN_WALL_THICKNESS_END
     else:
-        cav_x0 = cfg.BASIN_X0 + cfg.BASIN_WALL_THICKNESS
+        cav_x0 = cfg.BASIN_X0 + cfg.BASIN_WALL_THICKNESS_END
         cav_x1 = cfg.BASIN_X1 - cfg.BASIN_TAP_DECK_WIDTH_X
-    cav_w = cav_x1 - cav_x0
-    cav_d = cfg.BASIN_DEPTH_Y - 2.0 * cfg.BASIN_WALL_THICKNESS
+    cav_top_w = cav_x1 - cav_x0  # 390.0 mm
+    cav_top_d = cfg.BASIN_DEPTH_Y - 2.0 * cfg.BASIN_WALL_THICKNESS_SIDE  # 226.0 mm
     cav_cx = 0.5 * (cav_x0 + cav_x1)
 
-    cavity_sketch = (
-        cq.Sketch().rect(cav_w, cav_d).vertices().fillet(cfg.BASIN_INNER_CORNER_RADIUS)
+    cav_bot_sketch = (
+        cq.Sketch()
+        .rect(cfg.BASIN_BOWL_BOTTOM_LENGTH_X, cfg.BASIN_BOWL_BOTTOM_DEPTH_Y)
+        .vertices()
+        .fillet(cfg.BASIN_INNER_BOT_CORNER_RADIUS)
     )
+    cav_top_sketch = (
+        cq.Sketch()
+        .rect(cav_top_w, cav_top_d)
+        .vertices()
+        .fillet(cfg.BASIN_INNER_TOP_CORNER_RADIUS)
+    )
+    cav_z0 = cfg.BASIN_RIM_TOP_Z - cfg.BASIN_CAVITY_DEPTH_Z  # 830.0 mm
+    cav_h = cfg.BASIN_CAVITY_DEPTH_Z + cfg.CLEARANCE_TOLERANCE
     basin_cavity = (
         cq.Workplane("XY")
-        .placeSketch(cavity_sketch)
-        .extrude(cfg.BASIN_CAVITY_DEPTH_Z + cfg.CLEARANCE_TOLERANCE)
-        .translate(
-            (
-                cav_cx,
-                cfg.BASIN_CENTER_Y,
-                cfg.BASIN_RIM_TOP_Z - cfg.BASIN_CAVITY_DEPTH_Z,
-            )
-        )
+        .placeSketch(cav_bot_sketch, cav_top_sketch.moved(cq.Location((0, 0, cav_h))))
+        .loft()
+        .translate((cav_cx, cfg.BASIN_CENTER_Y, cav_z0))
     )
     basin = basin_outer.cut(basin_cavity)
-    asm.add(basin, name="omnires_corfu_m_plus_basin", color=_color(cfg.COLOR_CERAMIC))
+    asm.add(basin, name="catalano_verso_basin", color=_color(cfg.COLOR_CERAMIC))
 
-    # Matte-black non-closing drain plug on bowl floor (Corfu M+ has no overflow)
+    # Flush matte-black non-closing drain cover centered at exact drawing drain (x = 693 mm)
     drain_plug = (
         cq.Workplane("XY")
-        .workplane(offset=cfg.BASIN_RIM_TOP_Z - cfg.BASIN_CAVITY_DEPTH_Z)
+        .workplane(offset=cav_z0)
         .center(cfg.SINK_DRAIN_X, cfg.BASIN_CENTER_Y)
-        .circle(26.0)
+        .circle(28.0)
         .extrude(3.0)
     )
     asm.add(drain_plug, name="basin_drain_plug", color=_color(cfg.COLOR_BLACK_METAL))
 
-    # 5. Matte-black side-mounted faucet centered on the side tap deck, pointing across bowl
+    # 5. Matte-black standing single-lever faucet at exact Catalano tap hole (60 mm from outer edge)
     faucet_body = (
         cq.Workplane("XY")
         .workplane(offset=cfg.BASIN_RIM_TOP_Z)
@@ -247,6 +237,16 @@ def build_wall_c_counter_and_basin() -> cq.Assembly:
         .center(cfg.BASIN_CENTER_Y, cfg.FAUCET_SPOUT_Z)
         .circle(0.5 * cfg.FAUCET_SPOUT_DIAMETER)
         .extrude(cfg.BASIN_SPOUT_DIR_X * cfg.FAUCET_SPOUT_LENGTH)
+    )
+    aerator_x = cfg.BASIN_TAP_X + cfg.BASIN_SPOUT_DIR_X * (
+        cfg.FAUCET_SPOUT_LENGTH - 0.5 * cfg.FAUCET_SPOUT_DIAMETER
+    )
+    faucet_aerator = (
+        cq.Workplane("XY")
+        .workplane(offset=cfg.FAUCET_SPOUT_Z - cfg.FAUCET_AERATOR_DROP_Z)
+        .center(aerator_x, cfg.BASIN_CENTER_Y)
+        .circle(0.45 * cfg.FAUCET_SPOUT_DIAMETER)
+        .extrude(cfg.FAUCET_AERATOR_DROP_Z)
     )
     lever_z0 = cfg.BASIN_RIM_TOP_Z + cfg.FAUCET_BODY_HEIGHT_Z
     if cfg.BASIN_SPOUT_DIR_X > 0:
@@ -263,7 +263,7 @@ def build_wall_c_counter_and_basin() -> cq.Assembly:
         lever_z0,
         lever_z0 + cfg.FAUCET_LEVER_THICKNESS_Z,
     )
-    faucet = faucet_body.union(faucet_spout).union(faucet_lever)
+    faucet = faucet_body.union(faucet_spout).union(faucet_aerator).union(faucet_lever)
     asm.add(faucet, name="basin_faucet_black", color=_color(cfg.COLOR_BLACK_METAL))
 
     # 6. Matte-black decorative bottle siphon & wall waste pipe straight into Wall C drain stub
