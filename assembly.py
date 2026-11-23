@@ -80,25 +80,41 @@ def run_furniture_assertions() -> None:
         f"Counter depth ({cfg.COUNTER_DEPTH_Y} mm) exceeds Wall D door trim ({cfg.DOOR_TRIM_OFFSET_Y} mm)"
     )
 
-    # 2. Semi-recessed basin clears Wall C outlets (X), toilet front (X), and leaves standing space to washer (Y)
-    basin_x0 = cfg.BASIN_CENTER_X - 0.5 * cfg.BASIN_WIDTH_X
-    basin_x1 = cfg.BASIN_CENTER_X + 0.5 * cfg.BASIN_WIDTH_X
+    # 2. Omnires Corfu M+ basin clears mirror (Y), toilet nose (X), Wall C outlets (Z), and leaves standing space
+    basin_x0 = cfg.BASIN_X0
+    basin_x1 = cfg.BASIN_X1
     outlet_c_x1 = cfg.OUTLET_C_START_X + cfg.OUTLET_C_WIDTH_X
     toilet_front_x = cfg.ROOM_LENGTH_X - cfg.CISTERN_DEPTH_X - cfg.TOILET_PROJECTION_X
     washer_front_y = (
         cfg.ROOM_DEPTH_Y - cfg.WM_FRONT_FROM_WALL_B - cfg.WM_DOOR_PROTRUSION_Y
     )
-    basin_standing_space_y = washer_front_y - cfg.BASIN_DEPTH_Y
+    basin_standing_space_y = washer_front_y - cfg.BASIN_FRONT_Y
+    basin_overhang_y = cfg.BASIN_FRONT_Y - cfg.COUNTER_DEPTH_Y
+    basin_supported_ratio = (cfg.COUNTER_DEPTH_Y - cfg.BASIN_BACK_Y) / cfg.BASIN_DEPTH_Y
+    faucet_top_z = cfg.BASIN_RIM_TOP_Z + cfg.FAUCET_BODY_HEIGHT_Z + cfg.FAUCET_LEVER_THICKNESS_Z
+    faucet_to_outlet_z = cfg.OUTLET_C_BOTTOM_Z - faucet_top_z
 
-    assert basin_x0 > outlet_c_x1, (
-        f"Basin left edge ({basin_x0} mm) overlaps Wall C outlets (x1={outlet_c_x1} mm)"
+    assert cfg.BASIN_BACK_Y >= cfg.MIRROR_THICKNESS_Y + 5.0, (
+        f"Basin too close to glued mirror: gap={cfg.BASIN_BACK_Y - cfg.MIRROR_THICKNESS_Y:.1f} mm"
+    )
+    assert basin_supported_ratio >= 0.65, (
+        f"Basin counter support ratio too low ({basin_supported_ratio:.0%}) — risk of tipping!"
+    )
+    assert faucet_to_outlet_z >= 80.0, (
+        f"Faucet top ({faucet_top_z:.0f} mm) too close vertically to Wall C outlets ({cfg.OUTLET_C_BOTTOM_Z:.0f} mm)"
     )
     assert basin_x1 < toilet_front_x, (
-        f"Basin right edge ({basin_x1} mm) overlaps toilet nose (x={toilet_front_x} mm)"
+        f"Basin left edge ({basin_x1} mm) overlaps toilet nose (x={toilet_front_x} mm)"
     )
     assert basin_standing_space_y >= cfg.MIN_BASIN_WALKWAY_CLEARANCE, (
         f"Basin-to-washer standing clearance too tight: {basin_standing_space_y:.0f} mm"
     )
+    if basin_x0 < outlet_c_x1:
+        print(
+            f"[NOTE] Right-side tap deck (x={basin_x0:.0f}..{basin_x0 + cfg.BASIN_TAP_DECK_WIDTH_X:.0f} mm, "
+            f"tap at x={cfg.BASIN_TAP_X:.1f} mm) sits {outlet_c_x1 - basin_x0:.0f} mm under the Wall C outlet X-zone "
+            f"(x={cfg.OUTLET_C_START_X:.0f}..{outlet_c_x1:.0f} mm), {faucet_to_outlet_z:.0f} mm below outlets vertically."
+        )
 
     # 3. Wall C upper cabinets clear clear doorway opening, mate flush to toilet cabinet via L-return,
     #    leave handle clearance to toilet_cab_door_R, and clear ceiling lamps

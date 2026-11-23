@@ -198,11 +198,11 @@ LED_STRIP_HEIGHT = 3.0
 LED_FRONT_INSET = 28.0               # Set back from front edge of counter/cabinets
 LED_END_MARGIN = 22.0                # Inset from side walls
 
-# --- 7A. Wall C Floating Counter, Semi-Recessed Basin, Faucet & Bottle Trap ---
+# --- 7A. Wall C Floating Counter, Omnires Corfu M+ (CORFUBP) Basin, Faucet & Bottle Trap ---
 COUNTER_DEPTH_Y = 200.0              # Flush with Wall D door trim (y = 200 mm)
-COUNTER_TOP_Z = 890.0                # 880-900 mm range for tall adults
-COUNTER_THICKNESS_Z = 42.0           # Solid bamboo slab (z = 848..890 mm)
-COUNTER_BOTTOM_Z = COUNTER_TOP_Z - COUNTER_THICKNESS_Z  # 848.0 mm
+COUNTER_TOP_Z = 760.0                # Lowered for 150 mm countertop basin (rim lands at 910 mm!)
+COUNTER_THICKNESS_Z = 42.0           # Unbroken solid bamboo slab (z = 718..760 mm)
+COUNTER_BOTTOM_Z = COUNTER_TOP_Z - COUNTER_THICKNESS_Z  # 718.0 mm
 
 # Hidden slim 24V LED driver tucked under counter near A-C corner cable
 LED_DRIVER_LENGTH_X = 140.0
@@ -211,31 +211,36 @@ LED_DRIVER_HEIGHT_Z = 32.0
 LED_DRIVER_OFFSET_FROM_WALL_A_X = 25.0
 LED_DRIVER_OFFSET_FROM_WALL_C_Y = 12.0
 
-# Compact semi-recessed white ceramic basin centered over Wall C drain (x = 693 mm)
-BASIN_CENTER_X = SINK_DRAIN_X        # 693.0 mm
-BASIN_WIDTH_X = 480.0                # x = 453..933 mm (clears Wall C outlets & toilet nose)
-BASIN_DEPTH_Y = 390.0                # Overhangs 190 mm past 200 mm counter (600 mm to washer)
-BASIN_RIM_ABOVE_COUNTER_Z = 25.0     # Rim top at z = 915 mm
-BASIN_RIM_TOP_Z = COUNTER_TOP_Z + BASIN_RIM_ABOVE_COUNTER_Z  # 915.0 mm
-BASIN_TOTAL_HEIGHT_Z = 160.0         # Basin bottom at z = 755 mm
-BASIN_BOTTOM_Z = BASIN_RIM_TOP_Z - BASIN_TOTAL_HEIGHT_Z      # 755.0 mm
-BASIN_WALL_THICKNESS = 22.0
-BASIN_REAR_DECK_Y = 105.0            # Rear flat faucet deck depth
-BASIN_CAVITY_DEPTH_Z = 125.0
-BASIN_FRONT_CORNER_RADIUS = 65.0
+# Omnires Corfu M+ (CORFUBP / CORFUBM) composite countertop basin: 500 x 250 x 150 mm (rim 100 mm)
+# Note: Facing Wall C (-Y), bowl is on the left (+X) and tap deck is on the right (-X).
+BASIN_MODEL_NAME = "Omnires Corfu M+ (500x250x150 mm)"
+BASIN_TAP_SIDE = "right"             # "right" (CORFUBP default, toward Wall D) or "left" (toward Wall A)
+BASIN_MIRROR_GAP_Y = 10.0            # Clean 10 mm air gap between glued mirror (y=6) and basin back
+BASIN_WIDTH_X = 500.0                # Official Omnires Corfu M+ width: 500 mm
+BASIN_DEPTH_Y = 250.0                # Official Omnires Corfu M+ depth: 250 mm (66 mm front overhang)
+BASIN_TOTAL_HEIGHT_Z = 150.0         # Official Omnires Corfu M+ total height: 150 mm
+BASIN_RIM_HEIGHT_Z = 100.0           # Official Omnires Corfu M+ straight upper rim height: 100 mm
+BASIN_BASE_INSET = 12.0              # Subtle tapered lower 50 mm M+ plinth inset under the 100 mm rim
+BASIN_WALL_THICKNESS = 14.0          # Thin M+ dolomite composite rim walls
+BASIN_TAP_DECK_WIDTH_X = 105.0       # Side deck width housing the centered side tap hole
+BASIN_DRAIN_OFFSET_FROM_BOWL_EDGE_X = 195.0  # Drain center relative to bowl outer edge (aligned to x=693)
+BASIN_CAVITY_DEPTH_Z = 110.0         # Inner washing bowl depth
+BASIN_OUTER_CORNER_RADIUS = 10.0     # Crisp thin-edge composite corner radius
+BASIN_INNER_CORNER_RADIUS = 18.0
+BASIN_BOTTOM_Z = COUNTER_TOP_Z                               # 760.0 mm (sits on unbroken counter)
+BASIN_RIM_TOP_Z = COUNTER_TOP_Z + BASIN_TOTAL_HEIGHT_Z       # 910.0 mm (ergonomic height for tall adults)
 
-# Matte-black basin faucet & decorative bottle siphon
-FAUCET_Y = 55.0                      # Centered on rear ceramic deck
-FAUCET_BODY_DIAMETER = 42.0
-FAUCET_BODY_HEIGHT_Z = 155.0
-FAUCET_SPOUT_LENGTH_Y = 120.0
-FAUCET_SPOUT_DIAMETER = 20.0
-FAUCET_SPOUT_Z = BASIN_RIM_TOP_Z + 125.0
-FAUCET_LEVER_LENGTH_Y = 85.0
-FAUCET_LEVER_WIDTH_X = 18.0
+# Matte-black side-mounted single-lever faucet (spout pointing across bowl along +/-X)
+FAUCET_BODY_DIAMETER = 40.0
+FAUCET_BODY_HEIGHT_Z = 145.0         # Top at z = 1055 mm (130 mm below 1185 mm Wall C outlets)
+FAUCET_SPOUT_LENGTH = 115.0          # Reaches sideways cleanly over the bowl
+FAUCET_SPOUT_DIAMETER = 18.0
+FAUCET_SPOUT_Z = BASIN_RIM_TOP_Z + 115.0
+FAUCET_LEVER_LENGTH = 78.0
+FAUCET_LEVER_WIDTH = 16.0
 FAUCET_LEVER_THICKNESS_Z = 8.0
 
-SIPHON_CENTER_Y = 195.0              # Aligned under semi-recessed bowl drain
+# Matte-black decorative bottle siphon aligned straight to Wall C drain (x = 693, z = 520)
 SIPHON_PIPE_DIAMETER = 32.0
 SIPHON_BOTTLE_DIAMETER = 64.0
 SIPHON_BOTTLE_TOP_Z = SINK_DRAIN_Z + 45.0
@@ -243,12 +248,32 @@ SIPHON_BOTTLE_BOTTOM_Z = SINK_DRAIN_Z - 45.0
 SIPHON_ESCUTCHEON_DIAMETER = 68.0
 SIPHON_ESCUTCHEON_THICKNESS = 10.0
 
-# --- 7B. Wall C Glued Stepped Mirror ---
+# --- 7B. Wall C Glued Stepped Mirror (Drops All the Way to the Bamboo Counter!) ---
 MIRROR_SIDE_MARGIN_X = 2.0
 MIRROR_THICKNESS_Y = 6.0
-MIRROR_BOTTOM_Z = 950.0              # 35 mm above basin rim, 60 mm above counter
+MIRROR_BOTTOM_JOINT_Z = 2.0          # Neutral-cure mirror silicone joint above bamboo counter
+MIRROR_BOTTOM_Z = COUNTER_TOP_Z + MIRROR_BOTTOM_JOINT_Z      # 762.0 mm (flush down to counter!)
 MIRROR_TOP_CLEARANCE_Z = 2.0         # Silicone expansion joint under upper cabinets
 MIRROR_OUTLET_CUTOUT_MARGIN = 1.0    # Tight factory cutout around 3-gang outlet box
+
+# Derived basin bounds (placed 10 mm clear of glued mirror, drain strictly aligned to SINK_DRAIN_X)
+BASIN_BACK_Y = MIRROR_THICKNESS_Y + BASIN_MIRROR_GAP_Y       # 16.0 mm
+BASIN_FRONT_Y = BASIN_BACK_Y + BASIN_DEPTH_Y                 # 266.0 mm (66 mm front overhang)
+BASIN_CENTER_Y = 0.5 * (BASIN_BACK_Y + BASIN_FRONT_Y)        # 141.0 mm (tap & drain Y center)
+if BASIN_TAP_SIDE == "right":
+    # Facing Wall C (-Y): bowl on left (+X), tap deck on right (-X toward Wall D / outlets)
+    BASIN_X1 = SINK_DRAIN_X + BASIN_DRAIN_OFFSET_FROM_BOWL_EDGE_X  # 888.0 mm
+    BASIN_X0 = BASIN_X1 - BASIN_WIDTH_X                            # 388.0 mm
+    BASIN_TAP_X = BASIN_X0 + 0.5 * BASIN_TAP_DECK_WIDTH_X          # 440.5 mm
+    BASIN_SPOUT_DIR_X = 1.0
+else:
+    # Facing Wall C (-Y): bowl on right (-X), tap deck on left (+X toward Wall A / toilet)
+    BASIN_X0 = SINK_DRAIN_X - BASIN_DRAIN_OFFSET_FROM_BOWL_EDGE_X  # 498.0 mm
+    BASIN_X1 = BASIN_X0 + BASIN_WIDTH_X                            # 998.0 mm
+    BASIN_TAP_X = BASIN_X1 - 0.5 * BASIN_TAP_DECK_WIDTH_X          # 945.5 mm
+    BASIN_SPOUT_DIR_X = -1.0
+BASIN_CENTER_X = 0.5 * (BASIN_X0 + BASIN_X1)
+COUNTER_DRAIN_HOLE_DIAMETER = 52.0   # Small waste pass-through hole in unbroken bamboo counter
 
 # --- 7C. Wall C Stepped Upper Cabinets (Uniform 255 mm Front + 288 mm L-Shaped Blind Corner) ---
 UPPER_C_DEPTH_Y = 255.0              # Uniform flush front across Wall C (clears y = 260 doorway & 22 mm handle!)
